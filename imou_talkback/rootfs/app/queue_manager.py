@@ -210,6 +210,7 @@ class QueueWorker:
                 for seg_path in segments:
                     if self._skip_event.is_set() or self._stop_event.is_set():
                         break
+                    logger.info("Bat dau doan %s", os.path.basename(seg_path))
                     talkback.push_audio(
                         host=self._cam["host"],
                         password=self._cam["password"],
@@ -218,6 +219,7 @@ class QueueWorker:
                         codec=use_codec,
                         volume=self._volume,
                     )
+                    logger.info("Xong doan %s", os.path.basename(seg_path))
             finally:
                 for sp in segments:
                     if sp != tmp_audio and os.path.exists(sp):

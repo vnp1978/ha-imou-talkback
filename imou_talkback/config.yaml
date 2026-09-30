@@ -1,5 +1,5 @@
 name: "Imou Talkback"
-version: "1.3.3"
+version: "1.3.4"
 slug: imou_talkback
 description: "Phát TTS qua loa camera Imou LAN. Không cần cloud account."
 url: "https://github.com/YOUR_USERNAME/ha-imou-talkback"
