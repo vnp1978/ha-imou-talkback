@@ -87,7 +87,7 @@ def push_audio(
     if result.returncode != 0:
         detail = stderr or stdout or "(no output)"
         raise RuntimeError(
-            f"visualtalk thất bại (exit {result.returncode}): {detail[:300]}"
+            f"visualtalk thất bại (exit {result.returncode}): {detail[-600:]}"
         )
 
     logger.debug("visualtalk OK: %s", stdout[:200] if stdout else "(no output)")
