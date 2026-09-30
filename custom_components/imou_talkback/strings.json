@@ -1,0 +1,32 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Thêm camera Imou",
+        "data": {
+          "name":     "Tên camera",
+          "host":     "IP camera",
+          "username": "Tài khoản",
+          "password": "Mật khẩu (Security Code dưới đáy camera)",
+          "port":     "Cổng NetSDK (mặc định 37777)"
+        }
+      },
+      "reconfigure": {
+        "title": "Cập nhật cấu hình camera",
+        "data": {
+          "host":     "IP camera",
+          "username": "Tài khoản",
+          "password": "Mật khẩu (để trống = giữ cũ)",
+          "port":     "Cổng NetSDK"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth":  "Sai tài khoản hoặc mật khẩu",
+      "cannot_connect": "Không kết nối được camera — kiểm tra IP và cổng 37777"
+    },
+    "abort": {
+      "already_configured": "Camera này đã được thêm"
+    }
+  }
+}
