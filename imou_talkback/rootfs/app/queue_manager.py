@@ -192,15 +192,37 @@ class QueueWorker:
             if self._skip_event.is_set() or self._stop_event.is_set():
                 return
 
-            # Push qua visualtalk
-            talkback.push_audio(
-                host=self._cam["host"],
-                password=self._cam["password"],
-                aac_path=tmp_audio,
-                port=int(self._cam.get("port", 8086)),
-                codec=use_codec,
-                volume=self._volume,
+            # Cắt đoạn 60s vì camera ngắt phiên nói sau ~90-120s
+            import glob as _glob
+            seg_prefix = tmp_raw.name + ".seg"
+            seg = subprocess.run(
+                ["ffmpeg", "-y", "-i", tmp_audio, "-f", "segment",
+                 "-segment_time", "60", "-segment_format", "adts",
+                 "-c", "copy", seg_prefix + "_%03d.aac"],
+                capture_output=True,
+                timeout=120,
             )
+            segments = sorted(_glob.glob(seg_prefix + "_*.aac"))
+            if seg.returncode != 0 or not segments:
+                logger.warning("Cắt đoạn lỗi, phát nguyên file")
+                segments = [tmp_audio]
+            try:
+                for seg_path in segments:
+                    if self._skip_event.is_set() or self._stop_event.is_set():
+                        break
+                    talkback.push_audio(
+                        host=self._cam["host"],
+                        password=self._cam["password"],
+                        aac_path=seg_path,
+                        port=int(self._cam.get("port", 8086)),
+                        codec=use_codec,
+                        volume=self._volume,
+                    )
+            finally:
+                for sp in segments:
+                    if sp != tmp_audio and os.path.exists(sp):
+                        try: os.unlink(sp)
+                        except: pass
 
         except Exception as e:
             logger.error(
