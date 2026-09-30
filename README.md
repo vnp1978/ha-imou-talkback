@@ -1,7 +1,7 @@
-## 🎙️ Imou Talkback — Home Assistant Add-on
+# 🎙️ Imou Talkback — Home Assistant Integration
 
-Phát TTS qua loa camera **Imou LAN** trực tiếp từ Home Assistant.  
-Không cần cloud account, không cần Imou app.
+Phát TTS và nhạc qua loa camera **Imou / Dahua** trực tiếp từ Home Assistant.  
+Không cần cloud account, không cần Imou app, không cần add-on trung gian.
 
 👉 **GitHub:** https://github.com/vnp1978/ha-imou-talkback
 
@@ -9,91 +9,120 @@ Không cần cloud account, không cần Imou app.
 
 ## Tính năng
 
-- 🔊 Phát văn bản (TTS) qua loa camera Imou qua mạng LAN
-- 🌐 Web UI để cấu hình camera và test TTS
-- 🔑 API Key tự động sinh — không cần cấu hình thủ công
-- 🤖 Tích hợp HA qua `notify` platform — dùng được trong automation
-- 🌍 Hỗ trợ đa ngôn ngữ: Tiếng Việt, English, Japanese, Korean...
+- 🔊 Phát TTS và nhạc qua loa camera Imou/Dahua trên mạng LAN
+- 🎵 Phát nhạc dài không bị vấp, không méo tiếng
+- 📱 Tích hợp đầy đủ vào HA — nút Cast, Browse Media, Stop
+- ⚡ Kết nối thẳng từ HA vào camera — không qua add-on trung gian
+- 🔄 Tự động chọn giao thức tốt nhất: cổng 8086 (AAC 16kHz) hoặc 37777 (PCM 8kHz)
+- 🌍 Hỗ trợ mọi TTS engine trong HA: Piper, Google TTS, Wyoming...
 
 ---
 
 ## Yêu cầu
 
-- Home Assistant OS hoặc Home Assistant Container
-- Camera Imou kết nối **cùng mạng LAN** với máy chạy HA
-- Password của camera: là **Security Code** in ở mặt dưới đáy camera
+- Home Assistant 2024.1 trở lên
+- Camera Imou hoặc Dahua kết nối **cùng mạng LAN** với HA
+- HA đã có **ffmpeg** (thường có sẵn)
+- Ít nhất một **TTS engine** trong HA (Piper, Google TTS...)
 
 ---
 
 ## Cài đặt
 
-### Bước 1 — Thêm repository
+### Bước 1 — Copy custom component vào HA
 
-Trong Home Assistant:  
-**Settings → Add-ons → Add-on Store → ⋮ → Repositories**
-
-Thêm URL:
+Tải thư mục `custom_components/imou_talkback/` từ repo này vào:
 ```
-https://github.com/vnp1978/ha-imou-talkback
+/config/custom_components/imou_talkback/
 ```
 
-### Bước 2 — Cài Add-on
-
-Tìm **Imou Talkback** trong danh sách → **Install** → **Start**.
-
-### Bước 3 — Cấu hình camera
-
-Vào **`http://homeassistant.local:8765`** (hoặc IP của HA + port 8765).
-
-Trang web sẽ hiện:
-- **API Key** đã được tạo sẵn
-- **Đoạn YAML** để copy vào `configuration.yaml`
-- Form để **thêm camera**
-- Nút **Test TTS** để thử ngay
-
-### Bước 4 — Thêm vào configuration.yaml
-
-Copy đoạn YAML từ trang web, dán vào `configuration.yaml`:
-
-```yaml
-notify:
-  - platform: imou_talkback
-    name: imou_talkback
-    host: homeassistant.local
-    port: 8765
-    api_key: "your-api-key-here"
-```
-
-Sau đó: **Developer Tools → YAML → Reload** (hoặc restart HA).
-
----
-
-## Sử dụng trong Automation
-
-```yaml
-automation:
-  - alias: "Thông báo có khách"
-    trigger:
-      - platform: state
-        entity_id: binary_sensor.motion_gate
-        to: "on"
-    action:
-      - service: notify.imou_talkback
-        data:
-          message: "Có người ở cổng"
-          target: "cam_cong"   # tên camera, bỏ trống = dùng camera đầu tiên
-```
-
----
-
-## API trực tiếp
-
+Hoặc dùng terminal HA:
 ```bash
-curl -X POST http://homeassistant.local:8765/speak \
-  -H "Content-Type: application/json" \
-  -H "X-API-Key: YOUR_API_KEY" \
-  -d '{"text": "Xin chào!", "camera": "cam_cong"}'
+git clone --depth=1 https://github.com/vnp1978/ha-imou-talkback /tmp/imou-install
+cp -r /tmp/imou-install/custom_components/imou_talkback /config/custom_components/
 ```
+
+### Bước 2 — Restart Home Assistant
+
+**Settings → System → Restart**
+
+### Bước 3 — Thêm Integration
+
+**Settings → Integrations → Add Integration → Imou Talkback**
+
+Điền thông tin camera:
+
+| Trường | Giá trị |
+|---|---|
+| Tên camera | Tên hiển thị (vd: Phòng khách) |
+| Host (IP) | IP camera trong mạng LAN |
+| Mật khẩu | **Security Code** in ở mặt dưới đáy camera |
+| Tài khoản | admin (mặc định) |
+| Cổng | 37777 (mặc định, dự phòng) |
+
+Mỗi camera thêm một lần. Sau khi thêm, entity `media_player.imou_<tên>` xuất hiện tự động.
+
+---
+
+## Sử dụng
+
+### Phát TTS trong Automation
+
+```yaml
+action:
+  - action: tts.speak
+    target:
+      entity_id: tts.piper
+    data:
+      media_player_entity_id: media_player.imou_phong_khach
+      message: "Có người ở cổng"
+```
+
+### Phát nhạc
+
+```yaml
+action:
+  - action: media_player.play_media
+    target:
+      entity_id: media_player.imou_phong_khach
+    data:
+      media_content_id: "http://example.com/music.mp3"
+      media_content_type: "music"
+```
+
+### Dừng phát
+
+```yaml
+action:
+  - action: media_player.media_stop
+    target:
+      entity_id: media_player.imou_phong_khach
+```
+
+### Cast từ Dashboard
+
+Bấm nút **Cast** trên entity card → chọn nguồn nhạc (My Media, Radio Browser, Text-to-speech...).
+
+---
+
+## Giao thức
+
+Integration tự động chọn giao thức phù hợp:
+
+| Cổng | Giao thức | Chất lượng | Ghi chú |
+|---|---|---|---|
+| 8086 | HTTP/DHAV | AAC 16kHz — rõ hơn | Ưu tiên |
+| 37777 | Dahua NetSDK | PCM 8kHz | Dự phòng tự động |
+
+Nếu cổng 8086 không kết nối được, integration tự chuyển sang 37777 và nhớ trong 1 giờ.
+
+---
+
+## Camera được hỗ trợ
+
+Tất cả camera **Imou** và **Dahua** có loa talkback:
+- Imou Cruiser, Ranger, Bullet, Dome series
+- Dahua và các OEM tương thích (Amcrest, Lorex...)
 
 ---
 
@@ -101,21 +130,13 @@ curl -X POST http://homeassistant.local:8765/speak \
 
 | Lỗi | Nguyên nhân | Cách fix |
 |---|---|---|
-| Không vào được `:8765` | Add-on chưa start | Kiểm tra tab **Log** trong Add-on |
-| `Handshake thất bại` | Sai password hoặc IP | Kiểm tra lại trong Web UI |
-| Không có tiếng | gTTS cần internet | Kiểm tra kết nối mạng của HA |
-| `Unauthorized` | Sai API key | Copy lại key từ Web UI |
-
----
-
-## Camera được hỗ trợ
-
-Tất cả camera **Imou** hỗ trợ talkback qua LAN (ONVIF port 8086):
-- Imou Cruiser, Ranger, Bullet, Dome series
-- Và các camera Dahua OEM tương thích
+| `cannot_connect` khi thêm | Sai IP hoặc camera không mở cổng 37777 | Kiểm tra IP, thử ping từ HA |
+| `invalid_auth` khi thêm | Sai Security Code | Lật đáy camera đọc lại Security Code |
+| Thêm được nhưng không có tiếng | Camera không mở cổng 8086 và 37777 | Kiểm tra firewall, thử từ cùng subnet |
+| Tiếng bị méo | ffmpeg không có trong HA | Cài add-on FFmpeg trong HA |
 
 ---
 
 ## License
 
-MIT
+MIT — free to use, modify and distribute.
